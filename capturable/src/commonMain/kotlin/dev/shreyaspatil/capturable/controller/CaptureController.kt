@@ -29,7 +29,11 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import org.jetbrains.skia.ColorType
@@ -44,8 +48,30 @@ class CaptureController {
      * Medium for providing capture requests
      */
     @Suppress("ktlint")
-    private val _captureRequests = MutableSharedFlow<CaptureRequest>(extraBufferCapacity = 1)
+    private val _captureRequests = MutableSharedFlow<CaptureRequest>()
     internal val captureRequests = _captureRequests.asSharedFlow()
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+
+    /**
+     * Creates and send a Bitmap capture request with specified [config].
+     *
+     * Make sure to call this method as a part of callback function and not as a part of the
+     * [Composable] function itself.
+     *
+     * @param config Bitmap config of the desired bitmap. Defaults to [Bitmap.Config.ARGB_8888]
+     */
+    @Suppress("DeferredResultUnused")
+    @OptIn(ExperimentalComposeApi::class)
+    @Deprecated(
+        message = "This method has been deprecated and will be removed in the upcoming releases. " +
+                "Use `captureAsync()` instead",
+        replaceWith = ReplaceWith("captureAsync(config)"),
+        level = DeprecationLevel.WARNING
+    )
+    fun capture(config: ColorType = ColorType.ARGB_4444) {
+        captureAsync(config)
+    }
 
     /**
      * Creates and requests for a Bitmap capture with specified [config] and returns
@@ -60,9 +86,11 @@ class CaptureController {
      */
     @ExperimentalComposeApi
     fun captureAsync(config: ColorType = ColorType.ARGB_4444): Deferred<ImageBitmap> {
-        val deferredImageBitmap = CompletableDeferred<ImageBitmap>()
-        return deferredImageBitmap.also {
-            _captureRequests.tryEmit(CaptureRequest(imageBitmapDeferred = it, config = config))
+        return coroutineScope.async {
+            val deferredImageBitmap = CompletableDeferred<ImageBitmap>()
+            deferredImageBitmap.also {
+                _captureRequests.emit(CaptureRequest(imageBitmapDeferred = it, config = config))
+            }.await()
         }
     }
 
