@@ -30,7 +30,11 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.ImageBitmap
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -44,8 +48,10 @@ class CaptureController {
      * Medium for providing capture requests
      */
     @Suppress("ktlint")
-    private val _captureRequests = MutableSharedFlow<CaptureRequest>(extraBufferCapacity = 1)
+    private val _captureRequests = MutableSharedFlow<CaptureRequest>()
     internal val captureRequests = _captureRequests.asSharedFlow()
+
+    private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     /**
      * Creates and send a Bitmap capture request with specified [config].
@@ -80,9 +86,11 @@ class CaptureController {
      */
     @ExperimentalComposeApi
     fun captureAsync(config: Bitmap.Config = Bitmap.Config.ARGB_8888): Deferred<ImageBitmap> {
-        val deferredImageBitmap = CompletableDeferred<ImageBitmap>()
-        return deferredImageBitmap.also {
-            _captureRequests.tryEmit(CaptureRequest(imageBitmapDeferred = it, config = config))
+        return coroutineScope.async {
+            val deferredImageBitmap = CompletableDeferred<ImageBitmap>()
+            deferredImageBitmap.also {
+                _captureRequests.emit(CaptureRequest(imageBitmapDeferred = it, config = config))
+            }.await()
         }
     }
 
