@@ -45,6 +45,7 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -53,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -64,6 +66,7 @@ import dev.shreyaspatil.capturable.controller.rememberCaptureController
 import dev.shreyaspatil.capturableExample.ui.theme.CapturableExampleTheme
 import dev.shreyaspatil.capturableExample.ui.theme.LightGray
 import dev.shreyaspatil.capturableExample.ui.theme.Teal200
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -108,6 +111,10 @@ fun TicketScreen() {
             }
         ) {
             Text("Preview Ticket Image")
+        }
+
+        LaunchedEffect(Unit) {
+            ticketBitmap = captureController.captureAsync().await()
         }
 
         // When Ticket's Bitmap image is captured, show preview in dialog
