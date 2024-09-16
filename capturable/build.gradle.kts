@@ -1,32 +1,39 @@
 import com.android.build.api.dsl.LibraryExtension
 
 plugins {
-    val enableAndroid = System.getenv("enable_android")
-        ?.equals("true", ignoreCase = true) != false
-            && JavaVersion.current() >= JavaVersion.VERSION_17
-
     id("org.jetbrains.kotlin.multiplatform")
-    id("com.android.library") apply enableAndroid
+    id("com.android.library") apply false
     id("org.jetbrains.compose")
 
     id("org.jetbrains.dokka")
     id("com.diffplug.spotless")
 }
 
+private fun ExtraPropertiesExtension.getBoolean(name: String, default: Boolean = true): Boolean {
+    return if (has(name))
+        get(name)?.toString()?.lowercase()?.toBooleanStrictOrNull() ?: default
+    else
+        default
+}
+
 // vercel自带的Java 11，但是AGP要求17，所以添加开关
-val enableAndroid = System.getenv("enable_android")
-    ?.equals("true", ignoreCase = true) != false
-        && JavaVersion.current() >= JavaVersion.VERSION_17
+val enableAndroid
+    get() = rootProject.extra.getBoolean("enable_android")
+            && JavaVersion.current() >= JavaVersion.VERSION_17
 
-val enableIos = System.getenv("enable_ios")
-    ?.equals("true", ignoreCase = true) != false
-        && System.getProperty("os.name").startsWith("Mac")
+if (enableAndroid) {
+    apply(plugin = libs.plugins.androidApplication.get().pluginId)
+}
 
-val enableDesktop = System.getenv("enable_desktop")
-    ?.equals("true", ignoreCase = true) != false
+val enableIos
+    get() = rootProject.extra.getBoolean("enable_ios")
+            && System.getProperty("os.name").startsWith("Mac")
 
-val enableWasm = System.getenv("enable_wasm")
-    ?.equals("true", ignoreCase = true) != false
+val enableDesktop
+    get() = rootProject.extra.getBoolean("enable_desktop")
+
+val enableWasm
+    get() = rootProject.extra.getBoolean("enable_wasm")
 
 kotlin {
     if (enableAndroid) {
@@ -175,7 +182,7 @@ if (enableAndroid) {
 //    }
 }
 
-tasks.dokkaHtml{
+tasks.dokkaHtml {
     outputDirectory.set(rootProject.mkdir("docs"))
 
     dokkaSourceSets {
@@ -191,9 +198,11 @@ spotless {
         targetExclude("$buildDir/**/*.kt")
         targetExclude("bin/**/*.kt")
 
-        ktlint().editorConfigOverride(mapOf(
-            "android" to "true",
-        ))
+        ktlint().editorConfigOverride(
+            mapOf(
+                "android" to "true",
+            )
+        )
         licenseHeaderFile(rootProject.file("spotless/copyright.kt"))
     }
 }
