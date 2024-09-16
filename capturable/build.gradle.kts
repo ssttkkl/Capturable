@@ -11,29 +11,29 @@ plugins {
 
 private fun ExtraPropertiesExtension.getBoolean(name: String, default: Boolean = true): Boolean {
     return if (has(name))
-        get(name)?.toString()?.lowercase()?.toBooleanStrictOrNull() ?: default
+        get(name).toString().lowercase().toBooleanStrict()
     else
         default
 }
 
 // vercel自带的Java 11，但是AGP要求17，所以添加开关
 val enableAndroid
-    get() = rootProject.extra.getBoolean("enable_android")
+    get() = rootProject.extra.getBoolean("ENABLE_ANDROID")
             && JavaVersion.current() >= JavaVersion.VERSION_17
 
 if (enableAndroid) {
-    apply(plugin = libs.plugins.androidApplication.get().pluginId)
+    apply(plugin = "com.android.library")
 }
 
 val enableIos
-    get() = rootProject.extra.getBoolean("enable_ios")
+    get() = rootProject.extra.getBoolean("ENABLE_IOS")
             && System.getProperty("os.name").startsWith("Mac")
 
 val enableDesktop
-    get() = rootProject.extra.getBoolean("enable_desktop")
+    get() = rootProject.extra.getBoolean("ENABLE_DESKTOP")
 
 val enableWasm
-    get() = rootProject.extra.getBoolean("enable_wasm")
+    get() = rootProject.extra.getBoolean("ENABLE_WASM")
 
 kotlin {
     if (enableAndroid) {

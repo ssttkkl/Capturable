@@ -1,3 +1,4 @@
+import java.util.Properties
 
 plugins {
     id("com.diffplug.spotless") version "6.25.0"
@@ -7,4 +8,16 @@ plugins {
 
     id("com.vanniktech.maven.publish") version "0.28.0" apply false
     id("org.jetbrains.dokka") version "1.9.20" apply false
+}
+
+val envPropFile = file("env.properties")
+if (envPropFile.exists()) {
+    val props = Properties().apply {
+        envPropFile.reader().use { rd ->
+            load(rd)
+        }
+    }
+    props.forEach { (k, v) ->
+        extra.set(k.toString(), v)
+    }
 }
