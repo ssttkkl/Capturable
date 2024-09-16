@@ -1,7 +1,7 @@
 import com.android.build.api.dsl.LibraryExtension
 
 plugins {
-    val enableAndroid = System.getProperty("enable_android")
+    val enableAndroid = System.getenv("enable_android")
         ?.equals("true", ignoreCase = true) != false
             && JavaVersion.current() >= JavaVersion.VERSION_17
 
@@ -14,9 +14,19 @@ plugins {
 }
 
 // vercel自带的Java 11，但是AGP要求17，所以添加开关
-val enableAndroid = System.getProperty("enable_android")
+val enableAndroid = System.getenv("enable_android")
     ?.equals("true", ignoreCase = true) != false
         && JavaVersion.current() >= JavaVersion.VERSION_17
+
+val enableIos = System.getenv("enable_ios")
+    ?.equals("true", ignoreCase = true) != false
+        && System.getProperty("os.name").startsWith("Mac")
+
+val enableDesktop = System.getenv("enable_desktop")
+    ?.equals("true", ignoreCase = true) != false
+
+val enableWasm = System.getenv("enable_wasm")
+    ?.equals("true", ignoreCase = true) != false
 
 kotlin {
     if (enableAndroid) {
@@ -28,15 +38,28 @@ kotlin {
                 }
             }
         }
+        println("${project.name} target: android")
     }
 
-    iosX64()
-    iosArm64()
-    iosSimulatorArm64()
+    if (enableIos) {
+        iosX64()
+        println("${project.name} target: iosX64")
+        iosArm64()
+        println("${project.name} target: iosArm64")
+        iosSimulatorArm64()
+        println("${project.name} target: iosSimulatorArm64")
+    }
 
-    jvm()
-    wasmJs {
-        browser()
+    if (enableDesktop) {
+        jvm()
+        println("${project.name} target: desktop")
+    }
+
+    if (enableWasm) {
+        wasmJs {
+            browser()
+            println("${project.name} target: wasmJs")
+        }
     }
 
     applyDefaultHierarchyTemplate()
@@ -67,16 +90,22 @@ kotlin {
             dependsOn(getByName("commonMain"))
         }
 
-        val iosMain by getting {
-            dependsOn(skiaMain)
+        if (enableIos) {
+            val iosMain by getting {
+                dependsOn(skiaMain)
+            }
         }
 
-        val jvmMain by getting {
-            dependsOn(skiaMain)
+        if (enableDesktop) {
+            val jvmMain by getting {
+                dependsOn(skiaMain)
+            }
         }
 
-        val wasmJsMain by getting {
-            dependsOn(skiaMain)
+        if (enableWasm) {
+            val wasmJsMain by getting {
+                dependsOn(skiaMain)
+            }
         }
     }
 }
